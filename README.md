@@ -54,15 +54,15 @@ copy .env.example .env
 notepad .env
 ```
 Set these values, save, close:
-| Variable | What to put |
-|---|---|
-| `DB_SERVER` | `your-server.database.windows.net` |
-| `DB_NAME` | Your database name |
-| `DB_USER` / `DB_PASSWORD` | Your Azure SQL login |
-| `GDRIVE_FOLDER_ID` | From step 4 |
-| `EXPORT_TABLE` | Your table name (default: `coal_articles`) |
-| `EXPORT_ORDER_BY` | Column to sort DESC by — must be on your table (default: `id`) |
-| `EXPORT_ROW_LIMIT` | How many rows per run (default: `100`) |
+
+- `DB_SERVER` — your Azure SQL server (e.g. `your-server.database.windows.net`)
+- `DB_NAME` — your database name
+- `DB_USER` — your Azure SQL username
+- `DB_PASSWORD` — your Azure SQL password
+- `GDRIVE_FOLDER_ID` — the folder ID from step 4
+- `EXPORT_TABLE` — your table name (default: `coal_articles`)
+- `EXPORT_ORDER_BY` — column to sort DESC by, must exist on your table (default: `id`)
+- `EXPORT_ROW_LIMIT` — how many rows per run (default: `100`)
 
 ### 6. First run — authorize Google once — 1 min
 ```cmd
@@ -89,15 +89,22 @@ Get-ScheduledTask -TaskName CokingCoalExport | Get-ScheduledTaskInfo
 
 ---
 
-### Common gotchas
+### Common errors
 
-| Error you see | Cause + Fix |
-|---|---|
-| `storageQuotaExceeded` from Drive | You created a Service Account in 3d instead of Desktop OAuth Client. Redo 3d as **Desktop app**. |
-| `Access blocked: app has not completed verification` | Step 3c OAuth screen still in **Testing**. Go back and click **PUBLISH APP**. |
-| `Login failed for user` from SQL | Wrong DB creds OR Azure SQL firewall blocking your IP. In Azure portal → SQL Server → Networking → **Add client IP**. |
-| `ImportError: DLL load failed while importing pyodbc` | ODBC driver missing. Redo step 2. |
-| Auth URL pops `localhost refused to connect` after Allow | Already mitigated — code binds to `127.0.0.1:8765`. If you still see it, antivirus/firewall is blocking that port. |
+**`storageQuotaExceeded` from Google Drive**
+You created a Service Account in step 3d instead of an OAuth Desktop client. Personal Gmail accounts can't use Service Accounts (they have no Drive quota). Redo step 3d and choose **Desktop app** as the Application type.
+
+**`Access blocked: app has not completed verification`**
+Your OAuth consent screen is still in Testing mode. Go back to step 3c and click **PUBLISH APP → CONFIRM**.
+
+**`Login failed for user` from SQL**
+Wrong DB credentials, or Azure SQL firewall is blocking your IP. Open Azure portal → SQL Server → Networking → click **Add client IP** → save.
+
+**`ImportError: DLL load failed while importing pyodbc`**
+The ODBC driver isn't installed. Redo step 2.
+
+**Browser shows `localhost refused to connect` after clicking Allow**
+Already mitigated in the code — it binds to `127.0.0.1:8765`. If you still see this, your antivirus or firewall is blocking that port. Whitelist Python or try a different port by editing `src/drive_uploader.py`.
 
 ---
 
