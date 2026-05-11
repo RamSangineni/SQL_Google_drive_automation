@@ -48,7 +48,8 @@ def _load_or_create_credentials(client_secret_path: Path, token_path: Path) -> C
     print("ONE-TIME GOOGLE DRIVE AUTHORIZATION REQUIRED", flush=True)
     print("=" * 70, flush=True)
     print("A URL will appear below. Copy it, paste it into your browser,", flush=True)
-    print("sign in as ramsangineni@gmail.com, and click Allow.", flush=True)
+    print("sign in with the Google account that owns the target Drive folder,", flush=True)
+    print("and click Allow.", flush=True)
     print("=" * 70 + "\n", flush=True)
     _sys.stdout.flush()
 

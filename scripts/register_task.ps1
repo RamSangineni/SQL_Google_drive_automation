@@ -1,7 +1,8 @@
 # Registers the CokingCoalExport scheduled task. Run as Administrator.
 # Triggers: 00:00, 06:00, 12:00, 18:00 daily.
+# Resolves project root from this script's location -> portable across machines.
 
-$ProjectRoot = "C:\Users\0200705\Downloads\dimpu"
+$ProjectRoot = (Resolve-Path "$PSScriptRoot\..").Path
 $BatPath     = Join-Path $ProjectRoot "scripts\run_export.bat"
 $TaskName    = "CokingCoalExport"
 
