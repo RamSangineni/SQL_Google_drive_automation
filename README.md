@@ -4,6 +4,103 @@ A small Python automation that, every 6 hours (00:00 / 06:00 / 12:00 / 18:00 loc
 
 Originally built for a "coking coal articles" use case (`coal_articles` table, 100 rows, `ORDER BY id DESC`) — fully parameterizable via `.env`.
 
+---
+
+## 🚀 Quick Start (~15 min, for someone who just cloned)
+
+> Prerequisites: **Python 3.10+**, **Windows 10/11**, an Azure SQL DB you can connect to, and a Google account.
+
+### 1. Install — 2 min
+```cmd
+git clone https://github.com/RamSangineni/SQL_Google_drive_automation.git
+cd SQL_Google_drive_automation
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements.txt
+```
+
+### 2. Check ODBC driver — 30 sec
+```cmd
+python -c "import pyodbc; print(pyodbc.drivers())"
+```
+The output must list **"ODBC Driver 17 for SQL Server"** or **"ODBC Driver 18 for SQL Server"**.
+If neither is there → install from https://learn.microsoft.com/sql/connect/odbc/download-odbc-driver-for-sql-server
+
+### 3. Google Cloud setup — 5 min ⚠️ Two non-obvious gotchas, read carefully
+
+**3a.** Create a project: https://console.cloud.google.com/projectcreate → any name → **Create**. **Dismiss** the "$300 free trial" banner (you don't need billing).
+
+**3b.** Enable Drive API: https://console.cloud.google.com/apis/library/drive.googleapis.com → **Enable**.
+
+**3c.** Configure OAuth consent screen: https://console.cloud.google.com/auth/overview
+- User type: **External**
+- App name: anything (e.g. `drive-export`)
+- Support email + developer email: your email
+- Save → ⚠️ **click PUBLISH APP → CONFIRM** ← *don't skip this — Testing mode breaks the script after 7 days*
+
+**3d.** Create OAuth Client ID: https://console.cloud.google.com/apis/credentials
+- + Create Credentials → **OAuth client ID**
+- Application type: **Desktop app** ← *NOT Web application — service accounts and Web app types do not work for personal Gmail*
+- Create → **DOWNLOAD JSON** from the popup
+- Save the file as `credentials/oauth_client_secret.json` inside this project folder
+
+### 4. Drive folder — 30 sec
+- Create a new folder in https://drive.google.com (any name)
+- Open the folder; copy the long ID from the URL: `drive.google.com/drive/folders/<ID>` — the `<ID>` part
+
+### 5. Fill `.env` — 2 min
+```cmd
+copy .env.example .env
+notepad .env
+```
+Set these values, save, close:
+| Variable | What to put |
+|---|---|
+| `DB_SERVER` | `your-server.database.windows.net` |
+| `DB_NAME` | Your database name |
+| `DB_USER` / `DB_PASSWORD` | Your Azure SQL login |
+| `GDRIVE_FOLDER_ID` | From step 4 |
+| `EXPORT_TABLE` | Your table name (default: `coal_articles`) |
+| `EXPORT_ORDER_BY` | Column to sort DESC by — must be on your table (default: `id`) |
+| `EXPORT_ROW_LIMIT` | How many rows per run (default: `100`) |
+
+### 6. First run — authorize Google once — 1 min
+```cmd
+python -u -m src.main
+```
+- An auth URL prints in the console. **Copy it**, paste in your browser
+- Sign in with the Google account that owns the Drive folder from step 4
+- On "Google hasn't verified this app" → **Advanced** → **Go to (unsafe)** → **Continue** → **Allow**
+- Console finishes uploading; check your Drive folder — there's a new `.xlsx` file ✅
+- The OAuth refresh token is now saved to `credentials/oauth_token.json` — **no browser ever again**
+
+### 7. Schedule every-6-hours — 1 min
+Right-click **PowerShell** → **Run as Administrator**:
+```powershell
+cd path\to\SQL_Google_drive_automation
+.\scripts\register_task.ps1
+```
+Verify it works:
+```powershell
+Start-ScheduledTask -TaskName CokingCoalExport
+Get-ScheduledTask -TaskName CokingCoalExport | Get-ScheduledTaskInfo
+```
+`LastTaskResult: 0` = success. Job now fires at 00:00, 06:00, 12:00, 18:00 daily.
+
+---
+
+### Common gotchas
+
+| Error you see | Cause + Fix |
+|---|---|
+| `storageQuotaExceeded` from Drive | You created a Service Account in 3d instead of Desktop OAuth Client. Redo 3d as **Desktop app**. |
+| `Access blocked: app has not completed verification` | Step 3c OAuth screen still in **Testing**. Go back and click **PUBLISH APP**. |
+| `Login failed for user` from SQL | Wrong DB creds OR Azure SQL firewall blocking your IP. In Azure portal → SQL Server → Networking → **Add client IP**. |
+| `ImportError: DLL load failed while importing pyodbc` | ODBC driver missing. Redo step 2. |
+| Auth URL pops `localhost refused to connect` after Allow | Already mitigated — code binds to `127.0.0.1:8765`. If you still see it, antivirus/firewall is blocking that port. |
+
+---
+
 ## Architecture
 
 ```
